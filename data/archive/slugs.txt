@@ -21,6 +21,7 @@ finale-viewers-m--vs--nullified-rate
 finale-viewers-m--vs--pct-bipoc
 finale-viewers-m--vs--pct-puzzle-challenges
 finale-viewers-m--vs--pct-strength-challenges
+finale-viewers-m--vs--pct-tribes-double-letter
 finale-viewers-m--vs--winner-jury-share
 max-age--vs--pct-puzzle-challenges
 mean-ep-length--vs--mean-viewers-m
@@ -56,6 +57,7 @@ n-advantage-events--vs--pct-bipoc
 n-advantage-events--vs--pct-endurance-challenges
 n-advantage-events--vs--pct-puzzle-challenges
 n-advantage-events--vs--pct-strength-challenges
+n-advantage-events--vs--premiere-dow
 n-advantage-events--vs--premiere-viewers-m
 n-advantage-events--vs--premiere-year
 n-advantage-events--vs--stddev-imdb
@@ -78,6 +80,7 @@ n-idols-played--vs--nullified-rate
 n-idols-played--vs--pct-endurance-challenges
 n-idols-played--vs--pct-puzzle-challenges
 n-idols-played--vs--pct-strength-challenges
+n-idols-played--vs--premiere-dow
 n-idols-played--vs--premiere-viewers-m
 n-idols-played--vs--premiere-year
 n-idols-played--vs--winner-jury-share
@@ -88,6 +91,8 @@ n-jury--vs--winner-jury-share
 n-tribes--vs--pct-bipoc
 n-tribes--vs--pct-water-challenges
 n-votes-total--vs--season-name-length
+n-votes-total--vs--season-name-word-count
+n-votes-total--vs--unique-first-letters
 n-votes-total--vs--winner-jury-share
 nullified-rate--vs--premiere-viewers-m
 nullified-rate--vs--premiere-year
@@ -104,12 +109,17 @@ pct-endurance-challenges--vs--stddev-imdb
 pct-lgbt--vs--pct-puzzle-challenges
 pct-lgbt--vs--premiere-year
 pct-lgbt--vs--season-length-days
+pct-puzzle-challenges--vs--premiere-dow
 pct-puzzle-challenges--vs--premiere-viewers-m
 pct-puzzle-challenges--vs--premiere-year
+pct-puzzle-challenges--vs--premiere-year-digit-sum
 pct-puzzle-challenges--vs--winner-jury-share
+pct-strength-challenges--vs--premiere-dow
 pct-strength-challenges--vs--premiere-viewers-m
 pct-strength-challenges--vs--premiere-year
 pct-strength-challenges--vs--winner-jury-share
+pct-tribes-double-letter--vs--premiere-year-digit-sum
+premiere-dow--vs--winner-jury-share
 premiere-viewers-m--vs--winner-jury-share
 premiere-year--vs--stddev-imdb
 premiere-year--vs--winner-jury-share

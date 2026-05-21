@@ -13,37 +13,41 @@ def _meta_map() -> dict[str, dict]:
     return {m.key: {"domain": m.domain, "source_tables": set(m.source_tables)} for m in REGISTRY}
 
 
-def _monotonicity_penalty(features: pd.DataFrame, a: str, b: str) -> float:
-    """Penalise pairs where both series are nearly-monotone in season number.
-
-    Those are just 'things drifted over time' — boring, not spurious-looking.
-    """
+def _season_monotonicity(features: pd.DataFrame) -> dict[str, float]:
+    """For each feature, |Pearson correlation with season number|."""
     seasons = features.index.to_numpy(dtype=float)
-
-    def monotone_score(col: str) -> float:
+    out: dict[str, float] = {}
+    for col in features.columns:
         x = features[col]
         mask = x.notna()
         if mask.sum() < 5:
-            return 0.0
-        r = abs(float(np.corrcoef(seasons[mask], x[mask].to_numpy(dtype=float))[0, 1]))
-        return r
+            out[col] = 0.0
+            continue
+        std = x[mask].std()
+        if std == 0 or np.isnan(std):
+            out[col] = 0.0
+            continue
+        out[col] = abs(float(np.corrcoef(seasons[mask], x[mask].to_numpy(dtype=float))[0, 1]))
+    return out
 
-    ma = monotone_score(a)
-    mb = monotone_score(b)
-    if ma > 0.9 and mb > 0.9:
-        return 0.4
-    if ma > 0.8 and mb > 0.8:
-        return 0.7
-    return 1.0
+
+def _monotonicity_penalty(mono_a: float, mono_b: float) -> float:
+    """Multiplier ≤ 1 that crashes when both variables drift with time.
+
+    Pairs of strongly time-trending features just reflect 'Survivor changed
+    over the decades' — boring, not spurious-looking. We want at least one
+    variable to be independent of time.
+    """
+    return (1.0 - min(mono_a, mono_b)) ** 2
 
 
 def score_pairs(pairs: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
     meta = _meta_map()
+    monotonicity = _season_monotonicity(features)
     rows = []
     for _, row in pairs.iterrows():
         a, b = row["a"], row["b"]
         ma, mb = meta[a], meta[b]
-        # Skip pairs from the same source table — likely trivially related.
         if ma["source_tables"] & mb["source_tables"]:
             shared_only = ma["source_tables"] == mb["source_tables"]
             if shared_only:
@@ -51,7 +55,7 @@ def score_pairs(pairs: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
         same_domain = ma["domain"] == mb["domain"]
         domain_distance = 0.3 if same_domain else 1.0
         sign_agreement = 1.0 if np.sign(row["r_pearson"]) == np.sign(row["r_spearman"]) else 0.5
-        mono_pen = _monotonicity_penalty(features, a, b)
+        mono_pen = _monotonicity_penalty(monotonicity[a], monotonicity[b])
         score = (
             abs(row["r_pearson"])
             * sign_agreement
@@ -67,6 +71,8 @@ def score_pairs(pairs: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
                 "score": float(score),
                 "same_domain": same_domain,
                 "monotonicity_penalty": mono_pen,
+                "monotonicity_a": monotonicity[a],
+                "monotonicity_b": monotonicity[b],
             }
         )
     df = pd.DataFrame(rows)

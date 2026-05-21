@@ -136,11 +136,6 @@ def premiere_month(t):
     return _to_date(t["season_summary"].set_index("season")["premiered"]).dt.month.astype(float)
 
 
-@feature("Premiere year", "Calendar year of season premiere", "production", ("season_summary",), "year")
-def premiere_year(t):
-    return _to_date(t["season_summary"].set_index("season")["premiered"]).dt.year.astype(float)
-
-
 @feature("Season length", "Days from premiere to finale", "production", ("season_summary",), "days")
 def season_length_days(t):
     ss = t["season_summary"].set_index("season")
@@ -495,6 +490,131 @@ def first_boot_age(t):
     cast = t["castaways"]
     # the row with the largest 'place' is the first boot
     return cast.sort_values(["season", "place"], ascending=[True, False]).groupby("season").first()["age"].astype(float)
+
+
+# ---- weird name letter features ----------------------------------------------
+
+
+def _has_double_letter(s: str) -> bool:
+    if not isinstance(s, str):
+        return False
+    s = s.lower()
+    return any(s[i] == s[i + 1] and s[i].isalpha() for i in range(len(s) - 1))
+
+
+@feature("K-name rate", "Share of castaway first names containing the letter K", "name_text", ("castaways",))
+def pct_names_with_k(t):
+    cast = t["castaways"]
+    has = cast["castaway"].fillna("").str.lower().str.contains("k", regex=False)
+    return cast.assign(h=has.astype(float)).groupby("season")["h"].mean().astype(float)
+
+
+@feature("Z-name rate", "Share of castaway first names containing the letter Z", "name_text", ("castaways",))
+def pct_names_with_z(t):
+    cast = t["castaways"]
+    has = cast["castaway"].fillna("").str.lower().str.contains("z", regex=False)
+    return cast.assign(h=has.astype(float)).groupby("season")["h"].mean().astype(float)
+
+
+@feature("Vowel-ending name rate", "Share of castaway first names ending in a vowel", "name_text", ("castaways",))
+def pct_names_ending_vowel(t):
+    cast = t["castaways"]
+    ends = cast["castaway"].fillna("").str.replace(r"[^A-Za-z]", "", regex=True).str[-1:].str.upper().isin(list("AEIOU"))
+    return cast.assign(v=ends.astype(float)).groupby("season")["v"].mean().astype(float)
+
+
+@feature("Double-letter name rate", "Share of castaway first names with a repeated adjacent letter (Aaron, Jeff, Bobby)", "name_text", ("castaways",))
+def pct_double_letter_names(t):
+    cast = t["castaways"]
+    has = cast["castaway"].fillna("").map(_has_double_letter)
+    return cast.assign(h=has.astype(float)).groupby("season")["h"].mean().astype(float)
+
+
+@feature("Mean cast Scrabble score", "Mean Scrabble tile score across all castaway first names", "name_text", ("castaways",), "points")
+def mean_castaway_scrabble(t):
+    cast = t["castaways"]
+    scores = cast["castaway"].fillna("").map(_scrabble_score)
+    return cast.assign(s=scores).groupby("season")["s"].mean().astype(float)
+
+
+@feature("Unique first letters", "Distinct starting letters across the cast's first names", "name_text", ("castaways",), "letters")
+def unique_first_letters(t):
+    cast = t["castaways"]
+    first = cast["castaway"].fillna("").str[:1].str.upper()
+    return cast.assign(f=first).groupby("season")["f"].nunique().astype(float)
+
+
+@feature("Mean name consonants", "Mean consonant count per castaway first name", "name_text", ("castaways",), "consonants")
+def mean_consonant_count(t):
+    cast = t["castaways"]
+
+    def cons(s: str) -> int:
+        if not isinstance(s, str):
+            return 0
+        return sum(1 for c in s.lower() if c.isalpha() and c not in "aeiou")
+
+    return cast.assign(c=cast["castaway"].fillna("").map(cons)).groupby("season")["c"].mean().astype(float)
+
+
+@feature("J-name rate", "Share of castaway first names starting with J (Jeff Probst's letter)", "name_text", ("castaways",))
+def pct_j_names(t):
+    cast = t["castaways"]
+    starts = cast["castaway"].fillna("").str[:1].str.upper() == "J"
+    return cast.assign(j=starts.astype(float)).groupby("season")["j"].mean().astype(float)
+
+
+@feature("Winner initial position", "Alphabetical position of winner's first initial (A=1 ... Z=26)", "name_text", ("castaways",))
+def winner_initial_pos(t):
+    w = _winner_rows(t["castaways"])
+    first = w.groupby("season")["castaway"].first().fillna("")
+
+    def pos(s: str) -> float:
+        if not isinstance(s, str) or not s:
+            return float("nan")
+        ch = s.strip()[:1].upper()
+        return float(ord(ch) - 64) if ch.isalpha() else float("nan")
+
+    return first.map(pos).astype(float)
+
+
+# ---- weird production / numerology features ---------------------------------
+
+
+@feature("Premiere day-of-week", "Day-of-week index of season premiere (0=Mon, 6=Sun)", "production", ("season_summary",))
+def premiere_dow(t):
+    return _to_date(t["season_summary"].set_index("season")["premiered"]).dt.dayofweek.astype(float)
+
+
+@feature("Premiere year digit sum", "Sum of the digits of the premiere calendar year (e.g. 2008 → 10)", "production", ("season_summary",))
+def premiere_year_digit_sum(t):
+    years = _to_date(t["season_summary"].set_index("season")["premiered"]).dt.year
+    return years.map(lambda y: sum(int(d) for d in str(int(y))) if pd.notna(y) else float("nan")).astype(float)
+
+
+@feature("Season name word count", "Number of words in the season name (e.g. 'Survivor: Heroes vs. Villains' = 4)", "name_text", ("season_summary",), "words")
+def season_name_word_count(t):
+    ss = t["season_summary"].set_index("season")
+    return ss["season_name"].fillna("").str.replace("Survivor:", "", regex=False).str.split().map(len).astype(float)
+
+
+@feature("Location string length", "Letter count of the filming location description", "name_text", ("season_summary",), "letters")
+def location_name_length(t):
+    ss = t["season_summary"].set_index("season")
+    return ss["location"].fillna("").str.replace(r"[^A-Za-z]", "", regex=True).str.len().astype(float)
+
+
+@feature("Tribe total Scrabble", "Sum of Scrabble scores across unique tribe names this season", "name_text", ("tribe_mapping",), "points")
+def tribe_name_total_scrabble(t):
+    tm = t["tribe_mapping"]
+    tribes = tm.dropna(subset=["tribe"]).groupby("season")["tribe"].unique()
+    return tribes.apply(lambda arr: float(sum(_scrabble_score(str(x)) for x in arr))).astype(float)
+
+
+@feature("Double-letter tribe rate", "Share of unique tribe names containing a repeated adjacent letter", "name_text", ("tribe_mapping",))
+def pct_tribes_double_letter(t):
+    tm = t["tribe_mapping"]
+    tribes = tm.dropna(subset=["tribe"]).groupby("season")["tribe"].unique()
+    return tribes.apply(lambda arr: float(np.mean([_has_double_letter(str(x)) for x in arr]))).astype(float)
 
 
 # ---- driver ------------------------------------------------------------------
