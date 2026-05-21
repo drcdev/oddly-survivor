@@ -1,0 +1,44 @@
+name: check-upstream
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: check-upstream
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch latest upstream tag
+        id: upstream
+        run: |
+          TAG=$(curl -fsSL https://api.github.com/repos/doehm/survivoR/releases/latest | jq -r .tag_name)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Latest survivoR release: $TAG"
+
+      - name: Fetch last-built tag from live Pages
+        id: deployed
+        env:
+          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          LAST=$(curl -fsSL "$PAGES_URL/.last_version" 2>/dev/null | tr -d '[:space:]' || echo "")
+          echo "tag=$LAST" >> "$GITHUB_OUTPUT"
+          echo "Last built tag: ${LAST:-<none>}"
+
+      - name: Trigger rebuild if needed
+        if: steps.upstream.outputs.tag != steps.deployed.outputs.tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Dispatching build for ${{ steps.upstream.outputs.tag }}"
+          gh workflow run build-and-deploy.yml \
+            --ref ${{ github.ref_name }} \
+            -f upstream_tag=${{ steps.upstream.outputs.tag }} \
+            --repo ${{ github.repository }}

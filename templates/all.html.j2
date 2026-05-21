@@ -1,0 +1,23 @@
+{% extends "base.html.j2" %}
+{% block title %}All ranked correlations &mdash; Oddly Survivor{% endblock %}
+{% block content %}
+<h1>All ranked correlations</h1>
+<p>Showing the top {{ rows|length }} surviving pairs (after filtering for shared-source-table dependencies, minimum overlap, and a spuriousness floor).</p>
+<table class="ranked">
+<thead>
+  <tr><th>#</th><th>Pair</th><th>r</th><th>p</th><th>n</th><th>score</th></tr>
+</thead>
+<tbody>
+{% for r in rows %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td><a href="{{ root }}c/{{ r.slug }}/">{{ r.label_a }} <span class="vs">vs</span> {{ r.label_b }}</a></td>
+    <td>{{ "%.2f"|format(r.r_pearson) }}</td>
+    <td>{{ "%.1e"|format(r.p_pearson) }}</td>
+    <td>{{ r.n }}</td>
+    <td>{{ "%.3f"|format(r.score) }}</td>
+  </tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

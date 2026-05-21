@@ -1,0 +1,27 @@
+{% extends "base.html.j2" %}
+{% block title %}Methodology &mdash; Oddly Survivor{% endblock %}
+{% block content %}
+<article class="prose">
+<h1>About Oddly Survivor</h1>
+<p>This site is a love letter to <a href="https://www.tylervigen.com/spurious-correlations">tylervigen.com</a>, retold with Survivor data. It computes correlations between every pair of {{ n_features }} per-season variables across {{ n_seasons }} US Survivor seasons, then ranks the pairs by a "spuriousness score" that rewards big effect sizes between conceptually unrelated variables.</p>
+
+<h2>How it works</h2>
+<ol>
+  <li>Pull the latest <a href="https://github.com/doehm/survivoR">survivoR</a> data directly from GitHub, pinned to release <code>{{ build_tag }}</code>.</li>
+  <li>Aggregate the raw per-castaway, per-episode, per-vote tables into one row per season &mdash; {{ n_features }} numeric variables in total.</li>
+  <li>Compute Pearson and Spearman correlations for every pair (~{{ n_pairs }} pairs).</li>
+  <li>Filter out pairs that share a source table (e.g. cast size and tribe count both come from <code>season_summary</code>).</li>
+  <li>Score: <code>|r| &middot; sign_agreement &middot; (1 &minus; p)<sup>1/2</sup> &middot; domain_distance &middot; monotonicity_penalty</code>.</li>
+  <li>Show the top {{ top_n }} as the featured grid.</li>
+</ol>
+
+<h2>The statistical disclaimer</h2>
+<p>With ~{{ n_pairs }} pairs tested and 50 seasons each, you would expect many spurious "significant" correlations to surface by pure chance. That's the entire point. Each detail page shows a Bonferroni-corrected p-value alongside the raw one so you can see how much wishful thinking is involved.</p>
+
+<h2>Attribution</h2>
+<p>All raw data comes from the open-source <a href="https://github.com/doehm/survivoR">survivoR</a> R package by Daniel Oehm, licensed under MIT. This site is an independent derivative work and is in no way affiliated with CBS or Survivor's producers.</p>
+
+<h2>Updates</h2>
+<p>A weekly GitHub Action polls upstream releases and rebuilds the site whenever a new <code>survivoR</code> tag ships. Current build was generated from <code>{{ build_tag }}</code>.</p>
+</article>
+{% endblock %}

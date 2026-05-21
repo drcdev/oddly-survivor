@@ -1,0 +1,25 @@
+{% extends "base.html.j2" %}
+{% block title %}Oddly Survivor &mdash; Spurious correlations in 50 seasons of Survivor{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Survivor variables that have no business correlating, but do.</h1>
+  <p>Top {{ cards|length }} statistically improbable pairings drawn from {{ n_features }} variables across {{ n_seasons }} seasons of US Survivor. Data refreshes when <a href="https://github.com/doehm/survivoR">doehm/survivoR</a> ships a new release.</p>
+</section>
+<section class="grid">
+{% for card in cards %}
+  <a class="card" href="{{ root }}c/{{ card.slug }}/">
+    <h2 class="card-title">
+      <span style="color: {{ card.color_a }}">{{ card.label_a }}</span>
+      <span class="vs">vs</span>
+      <span style="color: {{ card.color_b }}">{{ card.label_b }}</span>
+    </h2>
+    <div class="card-thumb">{{ card.thumb_svg|safe }}</div>
+    <p class="card-stats">
+      r = {{ "%.2f"|format(card.r_pearson) }}
+      <span class="muted">(n={{ card.n }}, p={{ "%.1e"|format(card.p_pearson) }})</span>
+    </p>
+  </a>
+{% endfor %}
+</section>
+<p class="more-link"><a href="{{ root }}all/">Browse the full ranked list &rarr;</a></p>
+{% endblock %}
