@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.8.17"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check pipeline tests
+
+      - name: Cache survivoR probe data
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: survivor-probe-cache-v1
+          restore-keys: |
+            survivor-probe-cache-
+
+      - name: Fetch probe data for tests
+        run: |
+          mkdir -p data/cache/probe
+          for t in castaways castaway_details season_summary episodes vote_history jury_votes \
+                   challenge_results challenge_description confessionals advantage_movement \
+                   boot_mapping tribe_mapping tribe_colours season_palettes; do
+            if [ ! -f data/cache/probe/$t.rda ]; then
+              curl -fsSL "https://raw.githubusercontent.com/doehm/survivoR/master/data/$t.rda" -o "data/cache/probe/$t.rda"
+            fi
+          done
+
+      - name: Tests
+        run: uv run pytest -q

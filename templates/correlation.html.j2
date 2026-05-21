@@ -1,0 +1,55 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ label_a }} vs {{ label_b }} &mdash; Oddly Survivor{% endblock %}
+{% block description %}Across {{ n }} seasons of US Survivor, {{ label_a }} and {{ label_b }} have a Pearson correlation of {{ "%.2f"|format(r_pearson) }}.{% endblock %}
+{% block og_image %}<meta property="og:image" content="{{ canonical_url }}og.png">{% endblock %}
+{% block content %}
+<article class="detail">
+  <header>
+    <p class="rank">Featured rank #{{ rank }}</p>
+    <h1>
+      <span style="color: {{ color_a }}">{{ label_a }}</span>
+      <span class="vs">correlates with</span>
+      <span style="color: {{ color_b }}">{{ label_b }}</span>
+    </h1>
+    <p class="lede">Across {{ n }} US Survivor seasons, these two move together with Pearson r = <strong>{{ "%.3f"|format(r_pearson) }}</strong>.</p>
+  </header>
+
+  <figure class="chart">{{ chart_svg|safe }}</figure>
+
+  <section class="stats">
+    <dl>
+      <div><dt>Pearson r</dt><dd>{{ "%.3f"|format(r_pearson) }}</dd></div>
+      <div><dt>Pearson p</dt><dd>{{ "%.2e"|format(p_pearson) }}</dd></div>
+      <div><dt>Spearman &rho;</dt><dd>{{ "%.3f"|format(r_spearman) }}</dd></div>
+      <div><dt>Spearman p</dt><dd>{{ "%.2e"|format(p_spearman) }}</dd></div>
+      <div><dt>Bonferroni p</dt><dd>{{ "%.2e"|format(p_bonferroni) }}</dd></div>
+      <div><dt>Seasons</dt><dd>{{ n }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="prose">
+    <h2 style="color: {{ color_a }}">{{ label_a }}</h2>
+    <p>{{ desc_a }} (domain: {{ domain_a }}; source: {{ sources_a }})</p>
+    <h2 style="color: {{ color_b }}">{{ label_b }}</h2>
+    <p>{{ desc_b }} (domain: {{ domain_b }}; source: {{ sources_b }})</p>
+  </section>
+
+  <section class="data">
+    <h2>Season-by-season</h2>
+    <p><a href="data.csv" download>Download CSV</a></p>
+    <table>
+      <thead><tr><th>Season</th><th>{{ label_a }}</th><th>{{ label_b }}</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr><td>{{ row.season }}</td><td>{{ row.a }}</td><td>{{ row.b }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="prev-next">
+    {% if prev %}<a href="{{ root }}c/{{ prev.slug }}/">&larr; #{{ prev.rank }} {{ prev.label_a }} vs {{ prev.label_b }}</a>{% endif %}
+    {% if next %}<a href="{{ root }}c/{{ next.slug }}/">#{{ next.rank }} {{ next.label_a }} vs {{ next.label_b }} &rarr;</a>{% endif %}
+  </nav>
+</article>
+{% endblock %}
